@@ -10,15 +10,22 @@ work_queue_s::workers_s::~workers_s() {
 	::pthread_attr_destroy(&about_worker);
 }
 
-
 void* work_queue_s::workers_s::worker_run(void* _q) {
+	static unsigned n_workers = 0;
+	unsigned i_worker = ++n_workers;
+	unsigned n_idle = 0;
+	unsigned n_work = 0;
 	work_queue_p p_queue = (work_queue_p) _q;
 	while (p_queue->q_live) {
 		function_t work;
 		if (p_queue->dequeue_work(work)) {
 			work();
+			++n_work;
+		} else {
+			++n_idle;
 		}
 	}
+	printf("[Worker %3u of %3u] idle: %u work: %u\n", i_worker, n_workers, n_idle, n_work);
 	return 0;
 }
 

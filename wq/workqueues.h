@@ -14,6 +14,8 @@ typedef work_queue_s* work_queue_p;
 //
 
 class work_queue_s {
+
+public:
 	class workers_s;
 
 public:
@@ -35,8 +37,8 @@ protected:
 	item_p p_free;
 
 protected:
-	item_p item_get();
-	void item_put(item_p);
+	item_p item_obtain();
+	void item_release(item_p);
 
 protected:
 	static unsigned free_items(item_p);

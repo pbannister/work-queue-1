@@ -13,7 +13,7 @@ unsigned work_queue_s::free_items(item_p p_list) {
 	return n;
 }
 
-work_queue_s::item_p work_queue_s::item_get() {
+work_queue_s::item_p work_queue_s::item_obtain() {
 	std::lock_guard<std::mutex> q_lock(m_free);
 	item_p p = p_free;
 	if (p) {
@@ -25,7 +25,7 @@ work_queue_s::item_p work_queue_s::item_get() {
 	return p;
 }
 
-void work_queue_s::item_put(item_p p) {
+void work_queue_s::item_release(item_p p) {
 	std::lock_guard<std::mutex> q_lock(m_free);
 	p->p_next = p_free;
 	p_free = p;
@@ -33,7 +33,7 @@ void work_queue_s::item_put(item_p p) {
 
 void work_queue_s::enqueue_work(function_t&& work) {
 	std::lock_guard<std::mutex> q_lock(m_used);
-	item_p p = item_get();
+	item_p p = item_obtain();
 	p->work = work;
 	if (p_tail) {
 		p_tail->p_next = p;
@@ -55,12 +55,12 @@ bool work_queue_s::dequeue_work(function_t& work) {
 		} else {
 			p_head = p_tail = 0;
 		}
-		p->p_next = 0;
 		work = p->work;
+		item_release(p);
 		return true;
 	}
 	q_more.wait_for(q_lock, work_wait);
-	return 0;
+	return false;
 }
 
 work_queue_s::work_queue_s() : q_live(true), p_free(0), p_head(0), p_tail(0) {
