@@ -14,11 +14,8 @@ protected:
 	work_queue_p p_queue;
 	pthread_attr_t about_worker;
 
-protected:
-	bool worker_start(function_t);
-
 public:
-	bool worker_start();
+	virtual bool worker_start();
 	bool worker_start(unsigned);
 
 public:
