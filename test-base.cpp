@@ -33,6 +33,9 @@ protected:
 	elapsed_t dt;
 
 public:
+	void start() {
+		::clock_gettime(CLOCK_REALTIME, &t1);
+	}
 	elapsed_t split() {
 		timespec t2;
 		::clock_gettime(CLOCK_REALTIME, &t2);
@@ -52,7 +55,7 @@ public:
 
 public:
 	timer_s() :dt(0) {
-		::clock_gettime(CLOCK_REALTIME, &t1);
+		start();
 	}
 
 };
@@ -75,7 +78,7 @@ void test_work_queue() {
 	queue.enqueue_work([&queue, &promise_passes](){
 		for (auto i_pass = 0; i_pass < g_options.n_passes; ++i_pass) {
 			if (0 < g_options.n_verbose) {
-				printf("#%03d pass is running.\n", i_pass);
+				::printf("#%03d pass is running.\n", i_pass);
 			}
 
 			// Queue much work to run.
@@ -85,7 +88,7 @@ void test_work_queue() {
 				auto& promise = promises[i_task];
 				queue.enqueue_work([i_task, &promise](){
 					char name[40];
-					sprintf(name, "#%03d task", i_task);
+					::sprintf(name, "#%03d task", i_task);
 					if (2 < g_options.n_verbose) {
 						printf("%s is running.\n", name);
 					}
@@ -96,7 +99,8 @@ void test_work_queue() {
 					double c = .999;
 					auto n_loops = g_options.n_loops;
 					for (auto i = 0; i < n_loops; ++i) {
-						a = (0 == (0xFFF & i)) ? 1.2 : (b * a / c);
+						a = (b * a / c);
+						a = (0 == (0xFFF & i)) ? 1.2 : a;
 					}
 
 					// Report completion.
@@ -111,7 +115,7 @@ void test_work_queue() {
 				auto future = promises[i_task].get_future();
 				auto v = future.get();
 				if (1 < g_options.n_verbose) {
-					printf("Collected work: %s\n", v.c_str());
+					::printf("Collected work: %s\n", v.c_str());
 				}
 			}
 		}
@@ -129,19 +133,21 @@ void test_work_queue() {
 	printf("Collected work: %s\n", v.c_str());
 	// All work is complete at this point, and all workers are idle.
 	queue.queue_stop();
+	::sleep(1);
 
-	long n_total_tasks = g_options.n_passes * g_options.n_tasks;
-	long n_total_loops = g_options.n_loops * n_total_tasks;
-	double dt_ns = timer.elapsed_ns() / (1.0 * n_total_loops);
-	double n_loop_rate = 1000 / dt_ns;
+	double ns_elapsed = timer.elapsed_ns();
+	double ns_pass = ns_elapsed / g_options.n_passes;
+	double ns_task = ns_pass / g_options.n_tasks;
+	double ns_loop = ns_task / g_options.n_loops;
 
-	printf("%9d workers\n", g_options.n_workers);
-	printf("%9d passes\n", g_options.n_passes);
-	printf("%9d tasks\n", g_options.n_tasks);
-	printf("%9d loops\n", g_options.n_loops);
-	printf("%9u elapsed (milliseconds)\n", timer.elapsed_ms());
-	printf("%9.1f elapsed/loop (nanoseconds)\n", dt_ns);
-	printf("%9.0f loops/microsecond\n", n_loop_rate);
+	printf("%11d workers\n", g_options.n_workers);
+	printf("%11d passes\n", g_options.n_passes);
+	printf("%11d tasks\n", g_options.n_tasks);
+	printf("%11d loops\n", g_options.n_loops);
+	printf("%11.1f elapsed (milliseconds)\n", ns_elapsed / 1000000);
+	printf("%11.1f elapsed/task (nanoseconds)\n", ns_task);
+	printf("%11.1f elapsed/loop (nanoseconds)\n", ns_loop);
+	printf("%11.0f loops/microsecond\n", 1000 / ns_loop);
 }
 
 void usage(const char* av0) {

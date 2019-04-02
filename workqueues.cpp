@@ -48,6 +48,9 @@ static const auto work_wait = std::chrono::milliseconds(100);
 
 bool work_queue_s::dequeue_work(function_t& work) {
 	std::unique_lock<std::mutex> q_lock(m_used);
+	if (!p_head) {
+		q_more.wait_for(q_lock, work_wait);
+	}
 	if (p_head) {
 		item_p p = p_head;
 		if (p->p_next) {
@@ -59,19 +62,13 @@ bool work_queue_s::dequeue_work(function_t& work) {
 		item_release(p);
 		return true;
 	}
-	q_more.wait_for(q_lock, work_wait);
 	return false;
 }
 
 void work_queue_s::queue_stop() {
-	std::function<void()> stop;
-	stop = [this, &stop](){
-		enqueue_work(stop);
-	};
-
 	// Unblock and terminate all worker threads.
 	q_live = false;
-	enqueue_work(stop);
+	q_more.notify_all();
 }
 
 work_queue_s::work_queue_s() : q_live(true), p_free(0), p_head(0), p_tail(0) {

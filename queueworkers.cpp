@@ -25,7 +25,7 @@ void* work_queue_s::workers_s::worker_run(void* _q) {
 			++n_idle;
 		}
 	}
-	printf("[Worker %3u of %3u] idle: %u work: %u\n", i_worker, n_workers, n_idle, n_work);
+	printf("[Worker %3u of %3u] %9u idle %9u work\n", i_worker, n_workers, n_idle, n_work);
 	return 0;
 }
 
