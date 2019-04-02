@@ -31,7 +31,7 @@ void work_queue_s::item_release(item_p p) {
 	p_free = p;
 }
 
-void work_queue_s::enqueue_work(function_t&& work) {
+void work_queue_s::enqueue_work(function_t work) {
 	std::lock_guard<std::mutex> q_lock(m_used);
 	item_p p = item_obtain();
 	p->work = work;
@@ -61,6 +61,17 @@ bool work_queue_s::dequeue_work(function_t& work) {
 	}
 	q_more.wait_for(q_lock, work_wait);
 	return false;
+}
+
+void work_queue_s::queue_stop() {
+	std::function<void()> stop;
+	stop = [this, &stop](){
+		enqueue_work(stop);
+	};
+
+	// Unblock and terminate all worker threads.
+	q_live = false;
+	enqueue_work(stop);
 }
 
 work_queue_s::work_queue_s() : q_live(true), p_free(0), p_head(0), p_tail(0) {

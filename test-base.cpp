@@ -127,13 +127,8 @@ void test_work_queue() {
 	auto v = future_passes.get();
 	timer.split();
 	printf("Collected work: %s\n", v.c_str());
-
 	// All work is complete at this point, and all workers are idle.
-
-	queue.q_live = false;
-	::sleep(1);
-	// Workers wake every 100ms, so all have exited.
-	// Slight hack, but simpler.
+	queue.queue_stop();
 
 	long n_total_tasks = g_options.n_passes * g_options.n_tasks;
 	long n_total_loops = g_options.n_loops * n_total_tasks;
